@@ -1,0 +1,197 @@
+SSP平台API接入文档
+http://docs.9fens.com/sspapi/
+
+SSP平台API接入文档
+九分SSP平台API入口流程和接口规范
+
+连接方式
+通过API接入方需要向SSP运营人员申请，并由SSP运营人员提供生成广告签名的秘钥。
+SSP平台API的基础通信协议采用HTTP协议，使用GET发送广告请求。
+数据中的中文必须使用UTF-8的编码格
+返回字段（int，double类型除外）中若没有值，则该字段为null。值Int，double类型的字段，值默认填充0
+接口字段如下
+正式接口: http://spi.ouovow.com:8080/api_2
+参数说明
+广告请求参数：reqjson=***
+广告签名：token=***（生成规则详见 获取广告的签名算法）
+header 中添加 ctime (详见 获取广告的签名算法）
+请求参数
+请求字段
+字段	类型	默认值	必填	备注
+api_version	string		是	API 版本，按照当前接入所参照的API 文档版本赋值，影响所有后续逻辑。当前版本1.0.0。
+app	App		是	应用信息
+device	Device		是	设备信息
+adslot	AdSlot		是	广告位信息
+network	Network		是	网络环境信息
+gps	Gps		否	定位信息
+应用信息 APP
+字段	类型	默认值	必填	备注
+app_id	string		是	应用ID，ssp平台提供的app_id
+app_version	string		是	应用版本
+package_name	String		是	应用包名
+设备信息 Device
+字段	类型	默认值	必填	备注
+device_type	DeviceType		是	设备类型， 1：移动设备，2：个人计算机，3：连接电视，4：手机，5：平板，6：连通装置，7：机顶盒。
+os_type	OsType		否	操作系统类型:1:android,2:ios。
+os_version	string		是
+vendor	string	“”	是	设备厂商名称，中文需要UTF-8编码
+model	string	“”	是	不填写无广告 调用android.os.Build.MODEL获取,中文需要UTF-8编码
+manufacturer	String	Unknown	是	不填写无广告 调用android.os.Build.MANUFACTURER获取, 中文需要UTF-8编码
+idfa	String	“”	是	IOS设备的IDFA
+android_id	string		是	Android设备系统ID
+imei	String		是	Android手机设备的IMEI
+imei_md5	string	“”	是	Android手机设备的IMEI_MD5
+mac	string		是	设备的WiFi网卡硬件mac号
+w	int		是	设备屏幕宽度
+h	int		是	设备屏幕高度
+dpi	double		是	像素密度。即1英寸中含多少个像素点。
+ua	String		是	系统User-Agent
+GPS信息GPS
+字段	类型	默认值	必填	备注
+coordinate_type	CoordinateType		是	坐标类型。1：全球卫星定位系统坐标系，2：国家测绘局坐标系，3：百度坐标系，4：其他坐标系
+lon	double		是	经度
+lat	double		是	纬度
+timestamp	int		是	时间戳，单位秒
+网络环境信息 Network
+字段	类型	默认值	必填	备注
+ip	string		否	用户设备的公网IP，格式：255.255.255.255
+connect_type	ConnectType		是	0：未知连接，1：以太网，2：WiFi，3：未知蜂窝网络，4:2G，5:3G，6:4G
+carrier	Carrier		是	0：未知运营商，1：中国移动，2：中国电信，3：中国联通，4：其他运营商
+cellular_id	string		否	当前连接的运营商基站ID，用于辅助用户定位
+lac	String		是	基站位置区域码
+mcc	String		是	移动国家代码(中国460)
+bss_id	String		是	wifi地址
+广告位信息AdSlot
+字段	类型	默认值	必填	备注
+adslot_id	string		是	广告位Id
+adslot_w	int	0	是	广告位宽度（保留字段）
+adslot_h	int	0	是	广告位高度（保留字段）
+响应字段
+返回字段
+字段	类型	默认值	必填	备注
+request_id	string		是	ssp平台生成标识请求ID
+error_code	int		否	请求响应出错时的错误码，用于问题排查。
+adms	array of object		否	有广告返回时，必填。 应答广告清单，在无错误码的应答中，会若干个广告描述信息，需要逐个解析
+get_ad_in_same_view_interval	int		是	同一个view自动请求广告的时间间隔
+expiration_time	long		否	广告清单过期时间戳，单位秒（保留字段）
+广告信息Adms
+字段	类型	默认值	必填	备注
+adslot_id	string		是	对应请求时填写的广告位ID
+ad_type	int		是	广告类型。1:横幅，2: 开屏，3: 插屏，4：原生
+creative_type	int	1	是	0：无创意类型，1：纯文字创意，2：纯图片创意， 3:图文混合创意，
+interaction_type	int	1	是	0：无动作，1：使用浏览器打开网页，2：下载应用。详见proto文件
+bundle	String		否	下载类广告，Android应用包名，例：”com.wk.demo”
+nativ	object		否	返回原生广告时，必填
+mix	object		否	返回图文创意时，必填
+imgurl	String		否	创意图片地址，可能是多张。
+w	int		否	素材宽度
+h	int		否	素材高度
+clkurl	String		否	广告点击跳转地址
+imptrackers	array of string		否	曝光追踪地址，允许有多个追踪地址
+clktrackers	array of string		否	点击追踪地址，允许有多个追踪地址
+dwnlst	array of string		否	下载开始监播
+dwnltrackers	array of string		否	下载完成监播
+intltrackers	array of string		否	安装监播
+actvtrackers	array of string		否	激活监播
+图文混合 mix
+字段	类型	默认值	必填	备注
+title	String		是	创意标题
+sub_title	String		否	创意子标题（描述）
+imgurl	String		是	图文创意icon url
+acimgurl	String		否	图文创意动作图片地址
+bg_color	String	“ffffff”	是	背景色
+text_colot	String	“333333”	是	文字颜色
+点击上报
+如果是广点通广告需要做以下操作
+
+需要对点击上报中以 包含(gdt.qq.com)的点击监播做以下处理, 对该条监播中,的值做如下替换
+
+截图
+
+注:在广告点击时需要捕获用户点击坐标，坐标均指相对于实际广告位左上角的坐标，箭头方向为正坐标方向，坐标单位为像素。 替换完成后请求该监播,返回如下
+
+截图
+
+对于下载app类的广告, 需把包含”c.gdt.qq.com” 的下载, 安装和激活监播 中的_CLICK_ID_ 替换为请求点击监播时分行的返回的clickid,并上报
+
+错误码对照表
+无错误响应
+错误码	定义	解释
+0	NO_ERROR	请求响应错误
+1	INTERNAL_ERROR	系统内部错误
+2	PARAM_ERROR	参数错误
+3	API_UNSUPPORTED	不支持的API
+4	ABOLITION_API	废除的API
+5	VERIFICATION_FAILURE	验证失效
+6	NO_CONTENT	无内容
+7	ANTI_CHEATING	防刷策略，IP被封
+公共参数错误
+错误码	定义	解释
+50	MISSING_SVR SDK	版本号缺失
+51	MISSING_DEVICE	设备名缺失
+52	MISSING_CUID	用户ID缺失
+53	MISSING_CLIENT_ID	客户端ID缺失
+54	MISSING_DEVICE_ID	设备ID缺失
+请求ID信息错误
+错误码	定义	解释
+100000	ERROR_FORMAT_REQUEST	请求数据格式错误
+API版本信息错误
+错误码	定义	解释
+102000	MISSING_API_VERSION	使用API版本信息缺失
+102010	ERROR_API_FORMAT	API格式不正确
+应用信息错误
+错误码	定义	解释
+103000	MISSING_APP_INFO	应用信息缺失
+103010	MISSING_APP_ID	应用ID 信息缺失
+103011	ERROR_APP_ID	应用ID 信息错误，MSSP 未收录
+103012	DISABLED_APP_ID	应用ID 无效，MSSP 上未生效
+103020	ERROR_CHANNEL_ID	渠道ID 信息错误
+103030	MISSING_APP_VERSION	应用版本信息缺失
+设备信息错误
+错误码	定义	解释
+104000	MISSING_DEVICE_INFO	设备信息缺失
+104010	MISSING_DEVICE_TYPE	设备类型信息缺失
+104011	ERROR_DEVICE_TYPE	设备类型信息错误
+104020	MISSING_OS_TYPE	操作系统信息缺失
+104021	ERROR_OS_TYPE	操作系统信息错误
+104030	MISSING_OS_VERSION	操作系统版本信息缺失
+104031	ERROR_OS_VERSION	操作系统版本信息错误
+104050	MISSING_VENDOR	厂商信息缺失
+104060	MISSING_MODEL	设备型号信息缺失
+104070	MISSING_ANDROID_ID	android id 缺失
+104071	ERROR_FORMAT_ANDROID_ID	android id 格式错误
+104080	MISSING_IMEI	imei号缺失
+104081	MISSING_IMEI_MD5	imei_md5缺失
+104090	MISSING_MAC	mac信息缺失
+104091	ERROR_MAC	mac信息格式错误
+104100	MISSING_SCREEN_SIZE_WIDTH	设备屏幕尺寸宽度缺失
+104110	MISSING_SCREEN_SIZE_HEIGHT	设备屏幕尺寸高度缺失
+网络环境信息错误
+错误码	定义	解释
+105000	MISSING_NETWORK_INFO	网络环境信息缺失
+105010	MISSING_IPV4	网络地址信息缺失
+105011	ERROR_FORMAT_IPV4	网络地址信息格式错误
+105020	MISSING_CONNECTION_TYPE	网络连接类型缺失
+105021	ERROR_CONNECTION_TYPE	网络连接类型错误
+105030	MISSING_OPERATOR_TYPE	网络运营商类型缺失
+105031	ERROR_OPERATOR_TYPE	网络运营商类型错误
+GPS坐标信息错误
+错误码	定义	解释
+106000	MISSING_COORDINATE_TYPE	坐标类型信息缺失
+106001	ERROR_COORDINATE_TYPE	坐标类型信息错误
+106010	MISSING_LONGITUDE	经度信息缺失 sss
+106020	MISSING_LATITUDE	纬度信息缺失
+106030	MISSING_GPS_TIMESTAMP	定位时间戳信息缺失
+广告位信息错误
+错误码	定义	解释
+107000	MISSING_ADSLOT	广告位信息缺失
+107010	MISSING_ADSLOT_ID	广告位ID 缺失
+107011	ERROR_ADSLOT_ID	广告位ID 未收录
+107012	DISABLED_ADSLOT_ID	广告位ID 未启用
+107013	NOT_MATCH_ADSLOT_ID	广告位ID 与应用ID 不匹配
+107020	MISSING_ADSLOT_SIZE_WIDTH	广告位尺寸宽度缺失
+107030	MISSING_ADSLOT_SIZE_HEIGHT	广告位尺寸高度缺失
+获取广告的签名算法
+广告服务的API使用的签名算法如下： 举例：我们对如下一个POST请求进行签名操作： Header 中传入ctime 创建时间 GET http:// 139.199.221.75:8080/api_2?reqjson={adrequest}&token={sign} sign = Md5(reqjson+token+ctime)
+
+验证sign 生成是否正确可以使用 http://tools.9fens.com/ad/ 测试
