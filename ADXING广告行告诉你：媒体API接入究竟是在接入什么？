@@ -1,0 +1,168 @@
+ADXING广告行告诉你：媒体API接入究竟是在接入什么？
+https://mip.admin5.com/article/20180110/816076.shtml
+
+之前ADXING广告行也专门针对互联网广告中的关键参与方与平台进行过介绍。当然，在整个程序化交易的生态当中不只有以下四方，后面的章节会逐步完善。
+
+
+Publisher把广告展示机会发送给Ad Exchange & SSP , AdExchange & SSP 经过处理后，会分发给各个 DSP & TD 等Ad Server，由Ad Server进行广告内容的填充。
+
+Publisher与 Ad Exchange & SSP 的数据交互方式有两种: API 或者SDK的方式，本文将会详细的介绍API的对接方式。
+
+Publisher即媒体，当有用户打开应用进入到有广告位的页面时(比如打开应用时的开屏广告)，媒体想要把广告展示给用户，就需要将数据发送给SSP，在SSP收到来自APP的信息后，根据自身系统的处理，最终会告知APP使用何种广告进行填充，如下图：
+
+既然双方需要通信，就一定需要一门共通的格式来约定双方通信当中所需要包含的信息。这里就涉及在RTB中经常会用到的两种数据交换格式：Protocol buffer与JSON。
+
+Protocolbuffer 是Google提供的一种语言中立，平台中立，可扩展的用作序列化的数据体。开发者可以自己定义自己需要的结构化数据，并直接在自己熟悉的源代码当中使用，如C#，C++，Python，Go，Java，一般用于通信协议、数据存储。举个简单的例子：
+
+(以上例子来自于 developers.google.com)
+
+一段简单的代码即可定义一个所需要的结构。(目前Proto最新的大版本是proto3。有兴趣的朋友可以到https://developers.google.com/protocol-buffers/获取更多关于Protocol buffer的信息。)
+
+Json，也属于一个轻量级的数据交换格式，术语ECMAScript的一个子集，以Key/Values的形式来进行数据的保存。具体信息也可以到http://www.json.org/获取。
+
+
+ 
+
+Protocolbuffer 与Json都可以用做数据交换格式的定义，没有最好最坏之分，其各自优劣势如下：
+
+ProtocolBuffer优点： 二进制格式，体积小，传输快，向后兼容性好。缺点：通用性差，自解释性差。
+
+Json优点：格式简单，可读性高。 缺点：文件大小比Protocol buffer大。
+
+不管选择使用哪种数据格式，都会涉及到具体数据传输对象的约定。通用的结构体一般会采取遵从iab (Interactive Advertising Bureau) 的OpenRTB项目的协议。目前该协议的OpenRTB 3.0正在收集各方的意见。市场上用的比较多的还是2.X版本。
+
+如之前描述的，当APP上出现展示机会时，APP需要将发送该Request。按照OpenRTB 2.4 的协议，大致需要发送如下的对象。
+
+
+ 
+
+(图片来自于OpenRTB-API-Specification-Version-2-4-FINAL)
+
+简单列举部分需要发送的数据对象如下：
+
+· id
+
+发送一个请求的唯一标识符。
+
+· Imp
+
+发送当前展示机会中的展示对象。
+
+· Site
+
+发送当前开发者的网站信息对象。
+
+· App
+
+发送当前APP的具体信息。
+
+· Device
+
+发送产生该展示机会的设备对象。
+
+· User
+
+发送当前展示机会的该设备的Human对象。
+
+· Test
+
+发送当前请求是否为测试请求，通用以0表示正式请求，1表示测试请求。
+
+· At
+
+Auction Type, 用于表示该请求采用的FirstPrice 或者Second Price + 作为竞价成功标准。
+
+· Tmax
+
+当前请求要求的最大响应时长。
+
+· cur
+
+结算货币类型。
+
+不难看出，媒体需要向外发出的信息简单的说，就是谁在什么开发者的什么媒体的什么广告位上产生了一次曝光展示机会。媒体同学可能会担心，如果把这些信息的都向外发送的话，是否会暴露太多信息? 我们下面来对谁在什么媒体的什么广告位上产生了一次曝光展示机会进行剥洋葱式的解析。
+
+首先，在什么设备上。一讲到设备，有媒体同学总会担心一旦传输设备信息就是将自己的用户信息给公开了。实际上不会，根据iab的规则，这里的用户指的是 Device对象。一般会需要以下的信息：
+
+· ua
+
+· geo (经纬度，视不同的APP功能可能有的APP不会发送)
+
+· ip
+
+· make (设备的品牌，如Apple )
+
+· model (设备的类型，如ipad)
+
+· OS (设备操作系统)
+
+· OSV(操作系统版本)
+
+· hwv(设备硬件版本)
+
+· h(设备屏幕高度)
+
+· w(设备屏幕宽度)
+
+· device(设备ID， 一般采用的是可以SHA1或者MD5的方式来加密传输 IMEI,Android id 或 IDFA)
+
+其次，在什么开发者的什么媒体上，这里一般描述的信息就是开发者的id，名称，分类，以及APP自身的名称， Bundle(如App Id或 com.com.adxing), 分类。
+
+最后，再细化到什么广告位上。这里iab提供的是一个Imp(Impression)对象，其中可以包括现在市面上的主流广告形式，如Banner, Video, Audio, Native。以Banner 为力，如果这次广告展示机会是一个Banner，则在Banner对象中会描述出这个Banner广告位的宽度、高度、可接受最大宽度、可接受最大高度、可接受最小宽度、可接受最小高度、禁止投放的广告类型(如JavaScript)、可接受的广告物料类型(如jpg、gif)等。
+
+综上，一次展示机会被媒体发出的仅仅只会是和广告相关的信息，而并没有带上任何和该APP业务相关的信息。
+
+作为Request接收方的SSP, Ad exchange 或DSP ,在接受到一次广告展示机会后同样也要通过自身的业务处理后，选择一个最合适的广告物料告知到APP方。这一部分就是我们通常说到的Response ，同样按照iab的标准来看，需要提供以下信息：
+
+
+ 
+
+(图片来自于OpenRTB-API-Specification-Version-2-4-FINAL)
+
+主要由以下几个内容构成：
+
+· id
+
+Response 的ID
+
+· Seatbid
+
+席位回应的内容
+
+· bidid
+
+Response 的ID
+
+· Cur
+
+回应出价的货币单位
+
+· nbr
+
+未回应的原因
+
+广告展示的物料的具体信息体现在Seatbid对象当中，可能会根据不同的SSP或者Ad exchange 约定不同的具体内容。但归纳一下一般会告知媒体以下的信息：
+
+· price
+
+该物料的出价。
+
+· site_url
+
+该物料的落地页地址。
+
+· creative_elements
+
+该物料的具体内容，如图片的URL, 视频的URL等。
+
+· click_tracking_urls
+
+当物料被点击时，需要上报的地址。多为第三方监测地址。
+
+· imp_tracking_urls
+
+当物料被有效展示时，需要上报的地址。
+
+在APP获取到这些信息后，按照与SSP或AdExchange约定的形式进行展示即可完成广告的一次曝光。
+
+回顾一下最早我们讲到的这张图，整个广告传输的内容无非就是按照约定的数据传输格式，按照约定的内容，由APP告知谁在什么开发者的什么媒体的什么广告位上产生了一次曝光展示机会， 由Ad Serving处理后，告知APP针对这一次展示机会，需要展示什么样的广告内容，以及当广告物料被点击和被展示时，需要做出何种上报行为。
